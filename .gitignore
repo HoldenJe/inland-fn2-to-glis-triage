@@ -1,3 +1,11 @@
+# FN2 Unnecessary Extensions
+*.CDX
+*.FPT
+FR5*
+*.FXP
+*.MEM
+F_FN*
+
 # History files
 .Rhistory
 .Rapp.history
