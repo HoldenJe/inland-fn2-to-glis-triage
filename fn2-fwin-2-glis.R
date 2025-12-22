@@ -76,6 +76,27 @@ FN028 <- FN028 %>%
 mutate(EFFTM0_GE = "08:00:00",
         EFFTM0_LT = "14:00:00")
 
+# FN121
+FN121 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN121")])
+FN121 <- FN121 %>% 
+  mutate(EFFDT0 = fix_date(EFFDT0), EFFDT1 = fix_date(EFFDT1)) %>% 
+  mutate(EFFDUR = ymd_hm(paste(EFFDT1, EFFTM1, sep = " "))-ymd_hm(paste(EFFDT0, EFFTM0, sep = " "))) %>% 
+  mutate(EFFDUR = round(as.numeric(EFFDUR), 2)) %>% 
+  mutate(EFFTM1 = paste0(as.character(EFFTM1), ":00"),
+        EFFTM0 = paste0(as.character(EFFTM0), ":00")
+) %>% mutate(PROCESS_TYPE = 1) %>% # 1 = by net, 3 = panel group
+  mutate(SSN = FN022$SSN) %>% # only works if there is one season 
+  mutate(SUBSPACE = AREA) %>% # hack - likely needs a FN026_subspace table
+  mutate(MODE = FN028$MODE) # only works if there is one mode
+
+str(FN121)
+
+missing_cols <- setdiff(fn121_names, names(FN121))
+for (col in missing_cols) {
+  FN121[[col]] <- NA
+}
+
+FN121 <- FN121 %>% select(all_of(fn121_names))
 
 # Create T5 data base
 dbase_write <- file.path("TemplatedData", paste0(FN011$PRJ_CD, "_T5.accdb"))
@@ -83,12 +104,14 @@ if(file.exists(dbase_write)) {file.remove(dbase_write)} # remove any previous ve
 file.copy(dbase_template, dbase_write) # write blank database
 
 conn_write <- odbcConnectAccess2007(dbase_write, uid = "", pwd = "")
-isverbose = TRUE
+isverbose = FALSE
 sqlSave(conn_write, FN011, tablename = "FN011", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN012, tablename = "FN012", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN022, tablename = "FN022", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN026, tablename = "FN026", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN028, tablename = "FN028", append = TRUE, rownames = FALSE, verbose = isverbose)
+sqlSave(conn_write, FN121, tablename = "FN121", append = TRUE, rownames = FALSE, verbose = isverbose)
 odbcClose(conn_write)
 
+odbcCloseAll()
 # end
