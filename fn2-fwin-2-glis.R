@@ -55,13 +55,23 @@ names(FN012)
 fn012_names
 FN012 <- FN012 %>% select(all_of(fn012_names))
 
+# FN022
+FN022 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN022")])
+FN022 <- FN022 %>% select(all_of(fn022_names)) %>% 
+  mutate(SSN_DATE0 = fix_date(SSN_DATE0), SSN_DATE1 = fix_date(SSN_DATE1))
+
+
 # Create T5 data base
 dbase_write <- file.path("TemplatedData", paste0(FN011$PRJ_CD, "_T5.accdb"))
 if(file.exists(dbase_write)) {file.remove(dbase_write)} # remove any previous versions
 file.copy(dbase_template, dbase_write) # write blank database
 
 conn_write <- odbcConnectAccess2007(dbase_write, uid = "", pwd = "")
-isverbose = TRUE
+isverbose = FALSE
 sqlSave(conn_write, FN011, tablename = "FN011", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN012, tablename = "FN012", append = TRUE, rownames = FALSE, verbose = isverbose)
+sqlSave(conn_write, FN022, tablename = "FN022", append = TRUE, rownames = FALSE, verbose = isverbose)
 odbcClose(conn_write)
+
+
+# end
