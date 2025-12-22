@@ -66,17 +66,29 @@ FN026 <- FN026 %>%
   mutate(DD_LAT = NA, DD_LON = NA) %>% 
   select(all_of(fn026_names)) 
 
+# FN028
+FN028 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN028")])
+FN028 <- FN028 %>% select(all_of(fn028_names)) 
+FN028$GR <- "FWIN"
+FN028 <- FN028 %>% 
+  # mutate(EFFTM0_GE = as.character(EFFTM0_GE),
+  #       EFFTM0_LT = as.character(EFFTM0_LT))
+mutate(EFFTM0_GE = "08:00:00",
+        EFFTM0_LT = "14:00:00")
+
+
 # Create T5 data base
 dbase_write <- file.path("TemplatedData", paste0(FN011$PRJ_CD, "_T5.accdb"))
 if(file.exists(dbase_write)) {file.remove(dbase_write)} # remove any previous versions
 file.copy(dbase_template, dbase_write) # write blank database
 
 conn_write <- odbcConnectAccess2007(dbase_write, uid = "", pwd = "")
-isverbose = FALSE
+isverbose = TRUE
 sqlSave(conn_write, FN011, tablename = "FN011", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN012, tablename = "FN012", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN022, tablename = "FN022", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN026, tablename = "FN026", append = TRUE, rownames = FALSE, verbose = isverbose)
+sqlSave(conn_write, FN028, tablename = "FN028", append = TRUE, rownames = FALSE, verbose = isverbose)
 odbcClose(conn_write)
 
 # end
