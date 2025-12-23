@@ -31,6 +31,7 @@ fn123nonfish_names <- sqlColumns(conn_template, "FN123_NonFish")$COLUMN_NAME
 fn124_names <- sqlColumns(conn_template, "FN124")$COLUMN_NAME
 fn125_names <- sqlColumns(conn_template, "FN125")$COLUMN_NAME
 fn125lamprey_names <- sqlColumns(conn_template, "FN125_lamprey")$COLUMN_NAME
+fn127_names <- sqlColumns(conn_template, "FN127")$COLUMN_NAME
 odbcClose(conn_template)
 
 # FN011
@@ -143,6 +144,49 @@ if(nrow(emptynets)==0) {
 }
 
 # FN123
+missing_cols <- setdiff(fn123_names, names(FN123))
+for (col in missing_cols) {
+  FN123[[col]] <- NA
+}
+
+FN123$GRP <- "00"
+FN123 <- FN123 %>% select(all_of(fn123_names))
+
+# FN124 - if needed. Most FWINs likely don't use FN124
+# FN124 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN124")])
+
+# FN125
+FN125 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN125")]) %>% 
+    mutate(SAM = as.numeric(SAM),
+          FISH = as.numeric(FISH))
+
+missing_cols <- setdiff(fn125_names, names(FN125))
+for (col in missing_cols) {
+  FN125[[col]] <- NA
+}
+
+FN125$GRP <- "00"
+FN125$FATE <- "K"
+FN125 <- FN125 %>% select(all_of(fn125_names))
+
+# FN127
+FN127 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN127")]) %>% 
+    mutate(SAM = as.numeric(SAM),
+          FISH = as.numeric(FISH))
+
+missing_cols <- setdiff(fn127_names, names(FN127))
+for (col in missing_cols) {
+  FN127[[col]] <- NA
+}
+
+FN127$GRP <- "00"
+FN127$PREFERRED <- 1
+FN127 <- FN127 %>% select(all_of(fn127_names))
+
+# there seems to be, at least for this project a mismatch in fish numbers in 
+# FN125 and FN127 - possible renumbering before sending to aging lab?
+
+FN127 <- semi_join(FN127, FN125) # returns on FN127 records with known parent in FN125
 
 # Create T5 data base
 dbase_write <- file.path("TemplatedData", paste0(FN011$PRJ_CD, "_T5.accdb"))
@@ -160,6 +204,9 @@ sqlSave(conn_write, FN026_SUBSPACE, tablename = "FN026_Subspace", append = TRUE,
 sqlSave(conn_write, FN028, tablename = "FN028", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN121, tablename = "FN121", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN122, tablename = "FN122", append = TRUE, rownames = FALSE, verbose = isverbose)
+sqlSave(conn_write, FN123, tablename = "FN123", append = TRUE, rownames = FALSE, verbose = isverbose)
+sqlSave(conn_write, FN125, tablename = "FN125", append = TRUE, rownames = FALSE, verbose = isverbose)
+sqlSave(conn_write, FN127, tablename = "FN127", append = TRUE, rownames = FALSE, verbose = isverbose)
 odbcClose(conn_write)
 
 odbcCloseAll()
