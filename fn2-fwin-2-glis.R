@@ -9,6 +9,8 @@ library(RODBC)
 library(gfsR)
 library(readr)
 
+odbcCloseAll()
+
 # FN2 Files
 allfiles <- dir("FN2Data/45D/Ia01_STO", recursive = T, full.names = T)
 dbffiles <- allfiles[str_detect(allfiles, pattern = "DBF$")]
@@ -66,6 +68,13 @@ FN026 <- FN026 %>%
   mutate(DD_LAT = NA, DD_LON = NA) %>% 
   select(all_of(fn026_names)) 
 
+FN026_SUBSPACE <- FN026 %>% 
+  mutate(SUBSPACE = SPACE,
+        SUBSPACE_DES = SPACE_DES) %>% 
+  mutate(SUBSPACE_WT = NA)
+
+FN026_SUBSPACE <- FN026_SUBSPACE %>% select(all_of(fn026_sub_names))
+
 # FN028
 FN028 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN028")])
 FN028 <- FN028 %>% select(all_of(fn028_names)) 
@@ -84,7 +93,9 @@ FN121 <- FN121 %>%
   mutate(EFFDUR = round(as.numeric(EFFDUR), 2)) %>% 
   mutate(EFFTM1 = paste0(as.character(EFFTM1), ":00"),
         EFFTM0 = paste0(as.character(EFFTM0), ":00")
-) %>% mutate(PROCESS_TYPE = 1) %>% # 1 = by net, 3 = panel group
+) %>% 
+  mutate(SAM = as.numeric(SAM)) %>% 
+  mutate(PROCESS_TYPE = 1) %>% # 1 = by net, 3 = panel group
   mutate(SSN = FN022$SSN) %>% # only works if there is one season 
   mutate(SUBSPACE = AREA) %>% # hack - likely needs a FN026_subspace table
   mutate(MODE = FN028$MODE) # only works if there is one mode
@@ -98,20 +109,59 @@ for (col in missing_cols) {
 
 FN121 <- FN121 %>% select(all_of(fn121_names))
 
+# FN122
+# Gear Tables
+FN013 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN013")])
+FN014 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN014")])
+
+fn122_names
+
+FN122 <- FN121 %>% select(PRJ_CD, SAM, SIDEP0, SIDEP1) %>% 
+  rename(GRDEP0 = SIDEP0, 
+        GRDEP1 = SIDEP1) %>% 
+  mutate(EFF = FN014$EFF, EFFDST = FN013$EFFDST)
+
+missing_cols <- setdiff(fn122_names, names(FN122))
+for (col in missing_cols) {
+  FN122[[col]] <- NA
+}
+
+FN122$WATERHAUL <- as.character(FN122$WATERHAUL)
+
+FN122 <- FN122 %>% select(all_of(fn122_names))
+FN123 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN123")]) %>% 
+    mutate(SAM = as.numeric(SAM))
+
+## need to check FN123 catches for empty nets.
+emptynets <- anti_join(FN122, FN123) 
+
+if(nrow(emptynets)==0) {
+  FN122$WATERHAUL <- 0
+}else{
+  emptynets$WATERHAUL <- 1
+  FN122 <- rows_update(FN122, emptynets, by= c("PRJ_CD", "SAM"))
+}
+
+# FN123
+
 # Create T5 data base
 dbase_write <- file.path("TemplatedData", paste0(FN011$PRJ_CD, "_T5.accdb"))
 if(file.exists(dbase_write)) {file.remove(dbase_write)} # remove any previous versions
 file.copy(dbase_template, dbase_write) # write blank database
 
+# Write new data to template DB
 conn_write <- odbcConnectAccess2007(dbase_write, uid = "", pwd = "")
 isverbose = FALSE
 sqlSave(conn_write, FN011, tablename = "FN011", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN012, tablename = "FN012", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN022, tablename = "FN022", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN026, tablename = "FN026", append = TRUE, rownames = FALSE, verbose = isverbose)
+sqlSave(conn_write, FN026_SUBSPACE, tablename = "FN026_Subspace", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN028, tablename = "FN028", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN121, tablename = "FN121", append = TRUE, rownames = FALSE, verbose = isverbose)
+sqlSave(conn_write, FN122, tablename = "FN122", append = TRUE, rownames = FALSE, verbose = isverbose)
 odbcClose(conn_write)
 
 odbcCloseAll()
+
 # end
