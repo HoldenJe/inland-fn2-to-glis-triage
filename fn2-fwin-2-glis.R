@@ -105,7 +105,7 @@ FN121 <- FN121 %>%
   mutate(EFFTM1 = paste0(as.character(EFFTM1), ":00"),
         EFFTM0 = paste0(as.character(EFFTM0), ":00")
 ) %>% 
-  mutate(SAM = as.numeric(SAM)) %>% 
+  mutate(SAM = as.numeric(as.character(SAM))) %>% 
   mutate(PROCESS_TYPE = 1) %>% # 1 = by net, 3 = panel group
   mutate(SSN = FN022$SSN) %>% # only works if there is one season 
   mutate(SUBSPACE = AREA) %>% # hack - likely needs a FN026_subspace table
@@ -154,15 +154,15 @@ FN122$WATERHAUL <- as.character(FN122$WATERHAUL)
 
 FN122 <- FN122 %>% select(all_of(fn122_names))
 FN123 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN123")]) %>% 
-    mutate(SAM = as.numeric(SAM))
+    mutate(SAM = as.numeric(as.character(SAM)))
 
 ## need to check FN123 catches for empty nets.
 emptynets <- anti_join(FN122, FN123) 
 
 if(nrow(emptynets)==0) {
-  FN122$WATERHAUL <- 0
+  FN122$WATERHAUL <- "0"
 }else{
-  emptynets$WATERHAUL <- 1
+  emptynets$WATERHAUL <- "1"
   FN122 <- rows_update(FN122, emptynets, by= c("PRJ_CD", "SAM"))
 }
 
@@ -208,13 +208,14 @@ FN127$GRP <- "00"
 FN127$PREFERRED <- 1
 FN127 <- FN127 %>% select(all_of(fn127_names))
 
-FN127 <- semi_join(FN127, FN125) # returns on FN127 records with known parent in FN125
-
 nrow(anti_join(FN127, FN125)) == 0 # expect true
+
+# if above is true, the next line shouldn't be needed.
+FN127 <- semi_join(FN127, FN125) # returns on FN127 records with known parent in FN125
 
 # Create T5 data base
 
-# enddbase_write <- file.path("TemplatedData", paste0(FN011$PRJ_CD, "_T5.accdb"))
+dbase_write <- file.path("TemplatedData", paste0(FN011$PRJ_CD, "_T5.accdb"))
 if(file.exists(dbase_write)) {file.remove(dbase_write)} # remove any previous versions
 file.copy(dbase_template, dbase_write) # write blank database
 
