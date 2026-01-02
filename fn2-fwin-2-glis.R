@@ -11,6 +11,13 @@ library(readr)
 
 odbcCloseAll()
 
+load("CORP_WBY.RData")
+CORP_WBY <- CORP_WBY %>% 
+  mutate(SILOC = paste0(LAT, LON)) %>% 
+  mutate(DD_LAT = SILOCgetLAT12(SILOC), DD_LON = SILOCgetLON12(SILOC))
+
+CORP_WBY <- CORP_WBY %>% select(WATERBODY_NAME, FN2_WBY, DD_LAT, DD_LON)
+
 # FN2 Files
 allfiles <- dir("FN2Data/45D/Ia01_STO", recursive = T, full.names = T)
 dbffiles <- allfiles[str_detect(allfiles, pattern = "DBF$")]
@@ -36,6 +43,8 @@ odbcClose(conn_template)
 
 # FN011
 FN011 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN011")])
+FWIN_WBY <- inner_join(FN011, CORP_WBY, by = c('WBY' = "FN2_WBY")) # CORP_WBY needs PRJ_CD downstream
+
 setdiff(fn011_names, names(FN011))
 FN011 <- FN011 %>% 
   mutate(PROTOCOL = "FWIN", LAKE = WBY_NM) %>% 
@@ -43,6 +52,7 @@ FN011 <- FN011 %>%
   mutate(YEAR = year(PRJ_DATE0))
   
 FN011 <- FN011 %>% select(all_of(fn011_names))
+
 
 # FN012
 FN012 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN012")])
@@ -65,8 +75,8 @@ FN022 <- FN022 %>% select(all_of(fn022_names)) %>%
 
 # FN026
 FN026 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN026")])
+FN026 <- left_join(FN026, FWIN_WBY, by = "PRJ_CD")
 FN026 <- FN026 %>% 
-  mutate(DD_LAT = NA, DD_LON = NA) %>% 
   select(all_of(fn026_names)) 
 
 FN026_SUBSPACE <- FN026 %>% 
@@ -101,7 +111,8 @@ FN121 <- FN121 %>%
   mutate(SUBSPACE = AREA) %>% # hack - likely needs a FN026_subspace table
   mutate(MODE = FN028$MODE) # only works if there is one mode
 
-str(FN121)
+FN121 <- left_join(FN121, FWIN_WBY, by = "PRJ_CD") %>% 
+  rename(DD_LON0 = DD_LON, DD_LAT0 = DD_LAT)
 
 missing_cols <- setdiff(fn121_names, names(FN121))
 for (col in missing_cols) {
@@ -109,6 +120,18 @@ for (col in missing_cols) {
 }
 
 FN121 <- FN121 %>% select(all_of(fn121_names))
+
+# this isn't needed for migration but is a good check
+library(leaflet)
+leaflet(FN121) %>% addTiles() %>% 
+  addMarkers(lng = ~DD_LON0, lat = ~DD_LAT0, 
+    popup = ~SAM,    
+    clusterOptions = markerClusterOptions(
+      spiderfyOnEveryZoom = TRUE,  # keep spiderfied at max zoom when appropriate
+      spiderfyDistanceMultiplier = 1.2,
+      showCoverageOnHover = FALSE
+    )
+  )
 
 # FN122
 # Gear Tables
