@@ -180,8 +180,9 @@ FN123 <- FN123 %>% select(all_of(fn123_names))
 
 # FN125
 FN125 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN125")]) %>% 
-    mutate(SAM = as.numeric(SAM),
-          FISH = as.numeric(FISH))
+    mutate(SAM = as.numeric(as.character(SAM)),
+          FISH = as.numeric(as.character(FISH)), 
+          SPC = as.character(SPC))
 
 missing_cols <- setdiff(fn125_names, names(FN125))
 for (col in missing_cols) {
@@ -194,8 +195,9 @@ FN125 <- FN125 %>% select(all_of(fn125_names))
 
 # FN127
 FN127 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN127")]) %>% 
-    mutate(SAM = as.numeric(SAM),
-          FISH = as.numeric(FISH))
+    mutate(SAM = as.numeric(as.character(SAM)),
+          FISH = as.numeric(as.character(FISH)),
+          SPC = as.character(SPC))
 
 missing_cols <- setdiff(fn127_names, names(FN127))
 for (col in missing_cols) {
@@ -206,13 +208,13 @@ FN127$GRP <- "00"
 FN127$PREFERRED <- 1
 FN127 <- FN127 %>% select(all_of(fn127_names))
 
-# there seems to be, at least for this project a mismatch in fish numbers in 
-# FN125 and FN127 - possible renumbering before sending to aging lab?
-
 FN127 <- semi_join(FN127, FN125) # returns on FN127 records with known parent in FN125
 
+nrow(anti_join(FN127, FN125)) == 0 # expect true
+
 # Create T5 data base
-dbase_write <- file.path("TemplatedData", paste0(FN011$PRJ_CD, "_T5.accdb"))
+
+# enddbase_write <- file.path("TemplatedData", paste0(FN011$PRJ_CD, "_T5.accdb"))
 if(file.exists(dbase_write)) {file.remove(dbase_write)} # remove any previous versions
 file.copy(dbase_template, dbase_write) # write blank database
 
