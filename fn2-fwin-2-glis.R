@@ -109,7 +109,7 @@ FN121 <- FN121 %>%
         EFFTM0 = paste0(as.character(EFFTM0), ":00")
 ) %>% 
   mutate(SAM = as.numeric(as.character(SAM))) %>% 
-  mutate(PROCESS_TYPE = 1) %>% # 1 = by net, 3 = panel group
+  mutate(PROCESS_TYPE = "1") %>% # 1 = by net, 3 = panel group
   mutate(SSN = FN022$SSN) %>% # only works if there is one season 
   mutate(SUBSPACE = AREA) %>% # hack - likely needs a FN026_subspace table
   mutate(MODE = FN028$MODE) # only works if there is one mode
