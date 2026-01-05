@@ -49,7 +49,8 @@ setdiff(fn011_names, names(FN011))
 FN011 <- FN011 %>% 
   mutate(PROTOCOL = "FWIN", LAKE = WBY_NM) %>% 
   mutate(PRJ_DATE0 = fix_date(PRJ_DATE0), PRJ_DATE1 = fix_date(PRJ_DATE1)) %>% 
-  mutate(YEAR = year(PRJ_DATE0))
+  mutate(YEAR = year(PRJ_DATE0)) %>% 
+  mutate(COMMENT0 = paste(PRJ_NM, FOF_NM, FOF_LOC, WBY, WBY_NM))
   
 FN011 <- FN011 %>% select(all_of(fn011_names))
 
@@ -63,7 +64,7 @@ setdiff(fn012_names, names(FN012)) # TISSUE, AGEST, LAMSAM
 FN012 <- FN012 %>% 
   mutate(TISSUE = 1, AGEST = 1, LAMSAM = 0)
 setdiff(fn012_names, names(FN012)) # should match now
-names(FN012) == fn012_names
+# names(FN012) == fn012_names
 names(FN012)
 fn012_names
 FN012 <- FN012 %>% select(all_of(fn012_names))
@@ -238,3 +239,4 @@ odbcClose(conn_write)
 odbcCloseAll()
 
 # end
+
