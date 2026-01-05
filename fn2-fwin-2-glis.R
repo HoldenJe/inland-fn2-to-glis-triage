@@ -54,7 +54,6 @@ FN011 <- FN011 %>%
   
 FN011 <- FN011 %>% select(all_of(fn011_names))
 
-
 # FN012
 FN012 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN012")])
 FN012_glfishr <- read_csv("FN012_ALL.csv")
@@ -62,6 +61,8 @@ setdiff(names(FN012_glfishr), names(FN012))
 FN012 <- left_join(FN012, FN012_glfishr)
 setdiff(fn012_names, names(FN012)) # TISSUE, AGEST, LAMSAM
 FN012 <- FN012 %>% 
+  mutate(GRP_DES = "all sizes") %>% 
+  mutate(SPCMRK = "0") %>% 
   mutate(TISSUE = 1, AGEST = 1, LAMSAM = 0)
 setdiff(fn012_names, names(FN012)) # should match now
 # names(FN012) == fn012_names
