@@ -62,7 +62,7 @@ FN012 <- left_join(FN012, FN012_glfishr)
 setdiff(fn012_names, names(FN012)) # TISSUE, AGEST, LAMSAM
 FN012 <- FN012 %>% 
   mutate(GRP_DES = "all sizes") %>% 
-  mutate(SPCMRK = "0") %>% 
+  mutate(SPCMRK = "0", FDSAM = "0") %>% 
   mutate(TISSUE = 1, AGEST = 1, LAMSAM = 0)
 setdiff(fn012_names, names(FN012)) # should match now
 # names(FN012) == fn012_names
