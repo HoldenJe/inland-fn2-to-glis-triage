@@ -112,7 +112,8 @@ FN121 <- FN121 %>%
   mutate(PROCESS_TYPE = "1") %>% # 1 = by net, 3 = panel group
   mutate(SSN = FN022$SSN) %>% # only works if there is one season 
   mutate(SUBSPACE = AREA) %>% # hack - likely needs a FN026_subspace table
-  mutate(MODE = FN028$MODE) # only works if there is one mode
+  mutate(MODE = FN028$MODE) %>% # only works if there is one mode
+  mutate(SIDEP0 = GRDEPMIN, SIDEP1 = GRDEPMAX)
 
 FN121 <- left_join(FN121, FWIN_WBY, by = "PRJ_CD") %>% 
   rename(DD_LON0 = DD_LON, DD_LAT0 = DD_LAT)
@@ -184,7 +185,7 @@ FN123 <- FN123 %>% select(all_of(fn123_names))
 # FN125
 FN125 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN125")]) %>% 
     mutate(SAM = as.numeric(as.character(SAM)),
-          FISH = as.numeric(as.character(FISH)), 
+          FISH = as.integer(as.character(FISH)), 
           SPC = as.character(SPC))
 
 missing_cols <- setdiff(fn125_names, names(FN125))
@@ -195,11 +196,12 @@ for (col in missing_cols) {
 FN125$GRP <- "00"
 FN125$FATE <- "K"
 FN125 <- FN125 %>% select(all_of(fn125_names))
+FN125$FDSAM <- "0"
 
 # FN127
 FN127 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN127")]) %>% 
     mutate(SAM = as.numeric(as.character(SAM)),
-          FISH = as.numeric(as.character(FISH)),
+          FISH = as.integer(as.character(FISH)),
           SPC = as.character(SPC))
 
 missing_cols <- setdiff(fn127_names, names(FN127))
