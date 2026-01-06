@@ -8,6 +8,7 @@ library(stringr)
 library(RODBC)
 library(gfsR)
 library(readr)
+library(tidyr)
 
 odbcCloseAll()
 
@@ -201,6 +202,10 @@ FN125$GRP <- "00"
 FN125$FATE <- "K"
 FN125 <- FN125 %>% select(all_of(fn125_names))
 FN125$FDSAM <- "0"
+FN125 <- FN125 %>% 
+  mutate(TISSUE = as.character(TISSUE)) %>% 
+  mutate(TISSUE = replace_na(TISSUE, "0")) %>% 
+  mutate(AGEST = as.character(AGEST))
 
 # FN127
 FN127 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN127")]) %>% 
@@ -215,7 +220,7 @@ for (col in missing_cols) {
 }
 
 FN127$GRP <- "00"
-FN127$PREFERRED <- 1
+FN127$PREFERRED <- "1"
 FN127 <- FN127 %>% select(all_of(fn127_names))
 
 nrow(anti_join(FN127, FN125)) == 0 # expect true
@@ -228,6 +233,10 @@ gr_use <- FN122 %>% group_by(EFF, EFFDST) %>% summarize()
 GEPT <- data.frame(GR = FN028$GR, 
   PROCESS_TYPE = unique(FN121$PROCESS_TYPE),
   EFF = gr_use$EFF, EFFDST = gr_use$EFFDST)
+
+# clean up FN012
+caught_species <- FN123 %>% group_by(SPC) %>% summarize()
+FN012 <- semi_join(FN012, caught_species)
 
 # Create T5 data base
 dbase_write <- file.path("TemplatedData", paste0(FN011$PRJ_CD, "_T5.accdb"))
