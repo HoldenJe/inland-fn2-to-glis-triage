@@ -205,7 +205,8 @@ FN125$FDSAM <- "0"
 FN125 <- FN125 %>% 
   mutate(TISSUE = as.character(TISSUE)) %>% 
   mutate(TISSUE = replace_na(TISSUE, "0")) %>% 
-  mutate(AGEST = as.character(AGEST))
+  mutate(AGEST = as.character(AGEST)) %>% 
+  mutate(AGEST = str_replace_na(AGEST, "0"))
 
 # FN127
 FN127 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN127")]) %>% 
