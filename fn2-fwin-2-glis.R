@@ -211,7 +211,8 @@ FN125 <- FN125 %>%
 FN127 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN127")]) %>% 
     mutate(SAM = as.numeric(as.character(SAM)),
           FISH = as.integer(as.character(FISH)),
-          SPC = as.character(SPC)) %>% 
+          SPC = as.character(SPC),
+          AGEMT = as.character(AGEMT)) %>% 
     mutate(EFF = ifelse(EFF == "999", "001", EFF))
 
 missing_cols <- setdiff(fn127_names, names(FN127))
@@ -224,9 +225,12 @@ FN127$PREFERRED <- "1"
 FN127 <- FN127 %>% select(all_of(fn127_names))
 
 nrow(anti_join(FN127, FN125)) == 0 # expect true
-
 # if above is true, the next line shouldn't be needed.
 FN127 <- semi_join(FN127, FN125) # returns on FN127 records with known parent in FN125
+
+unique(FN127$AGEMT)
+FN127 <- FN127 %>% 
+  mutate(AGEMT = str_replace_all(AGEMT, "9", "8"))
 
 # Gear_Effort_Process_Type
 gr_use <- FN122 %>% group_by(EFF, EFFDST) %>% summarize()
