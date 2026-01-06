@@ -39,6 +39,7 @@ fn124_names <- sqlColumns(conn_template, "FN124")$COLUMN_NAME
 fn125_names <- sqlColumns(conn_template, "FN125")$COLUMN_NAME
 fn125lamprey_names <- sqlColumns(conn_template, "FN125_lamprey")$COLUMN_NAME
 fn127_names <- sqlColumns(conn_template, "FN127")$COLUMN_NAME
+GEPT_names <- sqlColumns(conn_template, "Gear_Effort_Process_Types")$COLUMN_NAME
 odbcClose(conn_template)
 
 # FN011
@@ -92,7 +93,7 @@ FN026_SUBSPACE <- FN026_SUBSPACE %>% select(all_of(fn026_sub_names))
 # FN028
 FN028 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN028")])
 FN028 <- FN028 %>% select(all_of(fn028_names)) 
-FN028$GR <- "FWIN"
+FN028$GR <- "GL50" # GLIS code for standard FWIN
 FN028 <- FN028 %>% 
   # mutate(EFFTM0_GE = as.character(EFFTM0_GE),
   #       EFFTM0_LT = as.character(EFFTM0_LT))
@@ -147,7 +148,8 @@ fn122_names
 FN122 <- FN121 %>% select(PRJ_CD, SAM, SIDEP0, SIDEP1) %>% 
   rename(GRDEP0 = SIDEP0, 
         GRDEP1 = SIDEP1) %>% 
-  mutate(EFF = FN014$EFF, EFFDST = FN013$EFFDST)
+  mutate(EFF = ifelse(FN014$EFF == "999", "001", FN014$EFF)) %>%
+  mutate(EFFDST = FN013$EFFDST) # this could fail if EFF != 001
 
 missing_cols <- setdiff(fn122_names, names(FN122))
 for (col in missing_cols) {
@@ -158,7 +160,8 @@ FN122$WATERHAUL <- as.character(FN122$WATERHAUL)
 
 FN122 <- FN122 %>% select(all_of(fn122_names))
 FN123 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN123")]) %>% 
-    mutate(SAM = as.numeric(as.character(SAM)))
+    mutate(SAM = as.numeric(as.character(SAM))) %>% 
+    mutate(EFF = ifelse(EFF == "999", "001", EFF))
 
 ## need to check FN123 catches for empty nets.
 emptynets <- anti_join(FN122, FN123) 
@@ -186,7 +189,8 @@ FN123 <- FN123 %>% select(all_of(fn123_names))
 FN125 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN125")]) %>% 
     mutate(SAM = as.numeric(as.character(SAM)),
           FISH = as.integer(as.character(FISH)), 
-          SPC = as.character(SPC))
+          SPC = as.character(SPC)) %>% 
+    mutate(EFF = ifelse(EFF == "999", "001", EFF))
 
 missing_cols <- setdiff(fn125_names, names(FN125))
 for (col in missing_cols) {
@@ -202,7 +206,8 @@ FN125$FDSAM <- "0"
 FN127 <- read.dbf(dbffiles[str_detect(dbffiles, pattern = "FN127")]) %>% 
     mutate(SAM = as.numeric(as.character(SAM)),
           FISH = as.integer(as.character(FISH)),
-          SPC = as.character(SPC))
+          SPC = as.character(SPC)) %>% 
+    mutate(EFF = ifelse(EFF == "999", "001", EFF))
 
 missing_cols <- setdiff(fn127_names, names(FN127))
 for (col in missing_cols) {
@@ -218,8 +223,13 @@ nrow(anti_join(FN127, FN125)) == 0 # expect true
 # if above is true, the next line shouldn't be needed.
 FN127 <- semi_join(FN127, FN125) # returns on FN127 records with known parent in FN125
 
-# Create T5 data base
+# Gear_Effort_Process_Type
+gr_use <- FN122 %>% group_by(EFF, EFFDST) %>% summarize()
+GEPT <- data.frame(GR = FN028$GR, 
+  PROCESS_TYPE = unique(FN121$PROCESS_TYPE),
+  EFF = gr_use$EFF, EFFDST = gr_use$EFFDST)
 
+# Create T5 data base
 dbase_write <- file.path("TemplatedData", paste0(FN011$PRJ_CD, "_T5.accdb"))
 if(file.exists(dbase_write)) {file.remove(dbase_write)} # remove any previous versions
 file.copy(dbase_template, dbase_write) # write blank database
@@ -238,6 +248,7 @@ sqlSave(conn_write, FN122, tablename = "FN122", append = TRUE, rownames = FALSE,
 sqlSave(conn_write, FN123, tablename = "FN123", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN125, tablename = "FN125", append = TRUE, rownames = FALSE, verbose = isverbose)
 sqlSave(conn_write, FN127, tablename = "FN127", append = TRUE, rownames = FALSE, verbose = isverbose)
+sqlSave(conn_write, GEPT, tablename = "Gear_Effort_Process_Types", append = TRUE, rownames = FALSE, verbose = isverbose)
 odbcClose(conn_write)
 
 odbcCloseAll()
