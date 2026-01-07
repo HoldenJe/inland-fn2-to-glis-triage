@@ -65,12 +65,9 @@ setdiff(fn012_names, names(FN012)) # TISSUE, AGEST, LAMSAM
 FN012 <- FN012 %>% 
   mutate(GRP_DES = "all sizes") %>% 
   mutate(SPCMRK = "0", FDSAM = "0") %>% 
-  mutate(TISSUE = 1, AGEST = 1, LAMSAM = 0) %>% 
+  mutate(TISSUE = "0", AGEST = "0", LAMSAM = "0") %>% # set default values to "0"
   mutate(SIZATT = NA, SIZINT = NA) # this needs to be changed if there is a FN124 table
-setdiff(fn012_names, names(FN012)) # should match now
-# names(FN012) == fn012_names
-names(FN012)
-fn012_names
+
 FN012 <- FN012 %>% select(all_of(fn012_names))
 
 # FN022
@@ -246,6 +243,44 @@ GEPT <- data.frame(GR = FN028$GR,
 # clean up FN012
 caught_species <- FN123 %>% group_by(SPC) %>% summarize()
 FN012 <- semi_join(FN012, caught_species)
+
+collected_structures <- FN125 %>% 
+  group_by(SPC, AGEST) %>% summarize() %>% 
+  filter(AGEST != "0")
+
+collected_tissue <- FN125 %>% group_by(SPC, TISSUE) %>% summarize() %>% 
+  filter(TISSUE != "0")
+
+combine_codes <- function(data, group_col, combine_col) {
+  group_sym <- sym(group_col)
+  combine_sym <- sym(combine_col)
+  
+  data %>%
+    group_by(!!group_sym) %>%
+    summarise(
+      base_digits = {
+        digits <- str_extract(!!combine_sym, "^\\d+")
+        digits <- digits[!is.na(digits)]
+        if (length(digits) == 0) NA_character_ else digits[which.max(nchar(digits))]
+      },
+      suffix = {
+        letters <- str_extract(!!combine_sym, "[A-Za-z]+$")
+        letters <- letters[!is.na(letters)]
+        letters_unique <- letters[!duplicated(letters)]
+        paste0(letters_unique, collapse = "")
+      },
+      .groups = "drop"
+    ) %>%
+    mutate(!!combine_col := if_else(suffix == "", base_digits, paste0(base_digits, suffix))) %>%
+    select(!!group_sym, !!combine_sym)
+}
+
+result_agest <- combine_codes(collected_structures , "SPC", "AGEST")
+result_tissue <- combine_codes(collected_tissue, "SPC", "TISSUE")
+
+FN012 <- rows_update(FN012, result_agest, by = "SPC")
+FN012 <- rows_update(FN012, result_tissue, by = "SPC")
+FN012 <- FN012 %>% select(all_of(fn012_names))
 
 # Create T5 data base
 dbase_write <- file.path("TemplatedData", paste0(FN011$PRJ_CD, "_T5.accdb"))
