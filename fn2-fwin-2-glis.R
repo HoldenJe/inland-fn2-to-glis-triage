@@ -87,7 +87,11 @@ FN026 <- FN026 %>%
 FN026_SUBSPACE <- FN026 %>% 
   mutate(SUBSPACE = SPACE,
         SUBSPACE_DES = SPACE_DES) %>% 
-  mutate(SUBSPACE_WT = NA)
+  mutate(SUBSPACE_WT = NA) %>% 
+  mutate(SIDEP_GE = ifelse(SPACE == "01", 2, 5),
+         SIDEP_LT = ifelse(SPACE == "01", 5, 15),
+         GRDEP_GE = ifelse(SPACE == "01", 2, 5),
+         GRDEP_LT = ifelse(SPACE == "01", 5, 15))
 
 FN026_SUBSPACE <- FN026_SUBSPACE %>% select(all_of(fn026_sub_names))
 
